@@ -29,6 +29,36 @@ class TestNestedAttributesInGeneral < ActiveRecord::TestCase
     assert_equal Hash.new, ActiveRecord::Base.nested_attributes_options
   end
 
+  def test_nested_attributes_added_to_parent_reach_subclass_that_defined_its_own_first
+    parent = Class.new(ActiveRecord::Base) do
+      self.table_name = "pirates"
+      def self.name = "Pirate"
+      has_many :birds, anonymous_class: Bird, foreign_key: :pirate_id
+      has_one :ship, anonymous_class: Ship, foreign_key: :pirate_id
+    end
+    child = Class.new(parent) { accepts_nested_attributes_for :ship }
+    parent.accepts_nested_attributes_for :birds
+
+    assert_equal [:ship, :birds], child.nested_attributes_options.keys
+    assert_equal [:birds], parent.nested_attributes_options.keys
+
+    pirate = child.new(catchphrase: "Arr", birds_attributes: [{ name: "Polly" }])
+    assert_equal ["Polly"], pirate.birds.map(&:name)
+  end
+
+  def test_nested_attributes_added_to_parent_keep_subclass_options_for_the_same_association
+    parent = Class.new(ActiveRecord::Base) do
+      self.table_name = "pirates"
+      def self.name = "Pirate"
+      has_one :ship, anonymous_class: Ship, foreign_key: :pirate_id
+    end
+    child = Class.new(parent) { accepts_nested_attributes_for :ship, allow_destroy: true }
+    parent.accepts_nested_attributes_for :ship
+
+    assert child.nested_attributes_options[:ship][:allow_destroy]
+    assert_not parent.nested_attributes_options[:ship][:allow_destroy]
+  end
+
   def test_should_add_a_proc_to_nested_attributes_options
     assert_equal ActiveRecord::NestedAttributes::ClassMethods::REJECT_ALL_BLANK_PROC,
                  Pirate.nested_attributes_options[:birds_with_reject_all_blank][:reject_if]

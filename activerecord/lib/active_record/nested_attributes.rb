@@ -409,6 +409,13 @@ module ActiveRecord
             nested_attributes_options[association_name.to_sym] = options
             self.nested_attributes_options = nested_attributes_options
 
+            descendants.each do |subclass|
+              next if subclass.nested_attributes_options.equal?(subclass.superclass.nested_attributes_options)
+              next if subclass.nested_attributes_options.key?(association_name.to_sym)
+
+              subclass.nested_attributes_options = subclass.nested_attributes_options.merge(association_name.to_sym => options)
+            end
+
             type = (reflection.collection? ? :collection : :one_to_one)
             generate_association_writer(association_name, type)
           else

@@ -1,3 +1,11 @@
+*   Fix subclasses missing `accepts_nested_attributes_for` options added to their parent class later.
+
+    A subclass that had already declared nested attributes of its own did not
+    see nested attributes declared on its parent afterwards, so assigning them
+    on the subclass raised `NoMethodError`.
+
+    *Carlos Daniel Pohlod*
+
 *   Clear `fallback_order` when calling `reorder`.
 
     Previously, `reorder(nil)` removed only explicit ordering, so a relation
